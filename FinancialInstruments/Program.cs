@@ -1,11 +1,14 @@
 using FinancialInstrumentsApi.Services;
-using System.Threading.RateLimiting;
+using System.Globalization;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure Logging
-builder.Logging.ClearProviders(); // Optional: Clears default logging providers
-builder.Logging.AddConsole(); // Add Console Logging
+
+//builder.Logging.ClearProviders(); // Optional: Clears default logging providers
+//builder.Logging.AddConsole(); // Add Console Logging
+
+CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
 
 // Add services to the container
 builder.Services.AddControllers();
@@ -20,22 +23,12 @@ builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<IPriceCache, PriceCache>();
 builder.Services.AddSingleton<ITiingoService, TiingoService>();
 
-builder.Services.AddRateLimiter(options =>
-{
-    options.AddPolicy("MarketDataPolicy", context =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: context.Connection.RemoteIpAddress?.ToString(),
-            factory: _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 10,
-                Window = TimeSpan.FromMinutes(1)
-            }));
-});
 builder.Services.AddSingleton<IWebSocketServerService, WebSocketServerService>();
 
 var app = builder.Build();
-// Register in Program.cs
+
 app.UseMiddleware<ExceptionMiddleware>();
+
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
